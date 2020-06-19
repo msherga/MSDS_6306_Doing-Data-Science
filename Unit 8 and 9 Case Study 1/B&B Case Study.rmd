@@ -36,7 +36,11 @@ colnames(beers)
 colnames(brews)
 
 #Q1 breweries per state
-brews %>% group_by(State) %>% tally()
+brewbystate<- data.frame(brews %>% group_by(State) %>% tally())
+
+bbsplot<- brewbystate %>% ggplot(aes(x = as.factor(State), y = n)) + labs(y="# of Breweries", x = "State") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = brewbystate$n, vjust = 1)
+
+
 
 
 #Q2 merge the data sets and print first/last 6 rows.
