@@ -2,7 +2,11 @@
 title: "Beer and Breweries Case Study"
 author: "Matt Sherga & Rudranil Mitra"
 date: "6/15/2020"
-output: powerpoint_presentation
+output:
+  html_document: default
+  word_document: default
+fig_width: 10
+fig_height: 10
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +15,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 ```{r}
+# Load the libraries in R 
 library(XML) #xml_Parse
 library(dplyr)
 library(tidyr)
@@ -22,45 +27,66 @@ library(tidyverse)
 library(BSDA)
 library(GGally)
 library(openintro)
-#library(usmap) 
-#devtools::install_github("wmurphyrd/fiftystater")
-#library(fiftystater)
 library(viridis)
 library(mapproj)
 library(ggpubr)
+library(FSA)
+```
 
+```{r}
+# Load the dataset from the file system
 beers<- read.csv(file.choose(),na.strings=c("","NA"))
 brews<- read.csv(file.choose(),na.strings=c("","NA"))
-#get column names
-colnames(beers)
-colnames(brews)
+```
 
+
+# How many breweries are present in each state 
+### We can see the Colorado, California, Michigan, Oregon and Texas have the highest number of breweries
+```{r}
 #Q1 breweries per state
-brewbystate<- data.frame(brews %>% group_by(State) %>% tally())
+#Group the data by state
+brewbystate<- data.frame(brews %>% group_by(State) %>% tally() %>% arrange(desc(n)))
+#Print the data to show the brewery count per state
+print(brewbystate)
+#Plot the data using GGPlot
+brewbystate %>% ggplot(aes(x = reorder(as.factor(State),-n), y = n)) + 
+  labs(y="# of Breweries", x = "State") + 
+  geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
+  geom_label(size = 3, label = brewbystate$n, vjust = 1) + 
+  ggtitle('Breweries by State')
 
-bbsplot<- brewbystate %>% ggplot(aes(x = as.factor(State), y = n)) + labs(y="# of Breweries", x = "State") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = brewbystate$n, vjust = 1)
+```
 
-
-
-
+# Merge the data sets and print first/last 6 rows
+```{r}
 #Q2 merge the data sets and print first/last 6 rows.
 #rename brewery id column to match "beers" respective column.
 names(brews)[1] <- "Brewery_id"
+
 #rename columns from each df since they are names for different things.
 names(beers)[1]<- "Beer"
 names(brews)[2]<- "Brewery"
-#merge
+
+#merge both the datasets 
 brewerydata<- merge(beers,brews, by = "Brewery_id", all = TRUE)
 brewerydata$State<-as.factor(brewerydata$State)
 brewerydata$City<-as.factor(brewerydata$City)
 brewerydata$Brewery_id<-as.factor(brewerydata$Brewery_id)
 brewerydata$ABV<-brewerydata$ABV * 100
 brewerydata<-brewerydata %>% rename("% ABV" = ABV)
+
+#Print the first and the last 6 records in the dataset
 head(brewerydata, 6)
 tail(brewerydata, 6)
+```
 
-
-
+# Address the missing values in each column
+### ABV has 62 missing values 
+### IBU has 1005 missing values 
+### Style has 5 missing values 
+### Our initial approach was to scrape the web to find the missing values for ABV & IBU. However we encountered quite a few challenges in extracting the data from the interner
+### due to inconsistencies in HTML formatting across different websites. Our final approach was to calculate the median values of ABV and IBU and impute them into the missing values
+```{r}
 #Q3 Address the missing values
 #how many na rows in ABV and IBU? What about missing Styles?
 length(which(is.na(brewerydata$`% ABV`))) #62 NAs
@@ -95,45 +121,95 @@ brewerydata$IBU[1476] <- 12
 brewerydata$IBU[1199] <- 59
 #add IBU from https://untappd.com/b/figueroa-mountain-brewing-co-weiss-weiss-baby/1043342
 brewerydata$IBU[273] <- 40
+```
 
-
+# Plots for Median ABV and IBU by State
+```{r}
 #Q4 Medians of ABV and IBU
+
 #find median of non-NA IBUs by state
-brewerydata<- brewerydata %>% group_by(State) %>% mutate(MedianIBU = median(IBU, na.rm = TRUE))
+brewerydata<- brewerydata %>% 
+  group_by(State) %>% 
+  mutate(MedianIBU = median(IBU, na.rm = TRUE))
+
 #find median of non-NA ABVs by state
-brewerydata<- brewerydata %>% group_by(State) %>% mutate(MedianABV = median(`% ABV`, na.rm = TRUE))
+brewerydata<- brewerydata %>% 
+  group_by(State) %>% 
+  mutate(MedianABV = median(`% ABV`, na.rm = TRUE))
 
 
 ####plot results####
 #plot the median ABVs for each state, with labels
-medabvplot<- brewerydata %>% ggplot(aes(x = State, y = MedianABV)) + ylab("Median % ABV") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = brewerydata$MedianABV, vjust = 1)+ theme(plot.title = element_text(hjust = .5))+ labs(title = "Median %ABV per State")
+medabvplot<- brewerydata %>% ggplot(aes(x = reorder(State,-MedianABV), y = MedianABV)) + 
+  ylab("Median % ABV") + 
+  xlab('State') + 
+  geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
+  geom_label(size = 3, label = brewerydata$MedianABV, vjust = 1) +
+  theme(plot.title = element_text(hjust = .5)) + 
+  labs(title = "Median %ABV per State")
 
 #plot the median IBUs for each state, with labels
-medibuplot<- brewerydata %>% ggplot(aes(x = State, y = MedianIBU), ylab = "Median IBU") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = brewerydata$MedianIBU, vjust = 1)+ theme(plot.title = element_text(hjust = .5))+ labs(title = "Median IBU per State")
+medibuplot<- brewerydata %>% ggplot(aes(x = reorder(State,-MedianIBU), y = MedianIBU), ylab = "Median IBU") + 
+  geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
+  geom_label(size = 3, label = brewerydata$MedianIBU, vjust = 1)+ 
+  theme(plot.title = element_text(hjust = .5))+ 
+  labs(title = "Median IBU per State") + 
+  xlab('State') 
 
 #plots both charts together in a stacked configuration
-finalplot<- ggarrange(medabvplot, medibuplot, ncol = 1, nrow = 2)
+ggarrange(medabvplot, medibuplot, ncol = 1, nrow = 2)
+```
 
+# Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+### Colorado is the state with highest ABV
+### Oregon is the state with highest IBU
+```{r}
 #Q5
 
 #Look up and store max values per state, making sure to ignore NA values
-maxabvperstate<-brewerydata %>% group_by(State) %>% filter(`% ABV`==max(`% ABV`, na.rm = TRUE))
-maxibuperstate<-brewerydata %>% group_by(State) %>% filter(IBU==max(IBU, na.rm = TRUE))
+maxabvperstate<-brewerydata %>% 
+  group_by(State) %>% 
+  filter(`% ABV`==max(`% ABV`, na.rm = TRUE))
+
+maxibuperstate<-brewerydata %>% 
+  group_by(State) %>% 
+  filter(IBU==max(IBU, na.rm = TRUE))
+
 #discover which state has the highest for each
 maxabvstate<-brewerydata$State[which.max(brewerydata$`% ABV`)] #Colorado (CO)
 maxibustate<-brewerydata$State[which.max(brewerydata$IBU)] #Oregon (OR)
 
 #plot max ABVs per state, label them, and call out the highest one
-maxabvplot<- maxabvperstate %>% ggplot(aes(x = State, y = maxabvperstate$`% ABV`)) + ylab("Highest % ABV") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = maxabvperstate$`% ABV`, vjust = 1)+ theme(plot.title = element_text(hjust = .5))+ labs(title = "Highest % ABV per State")+ geom_text(aes(8, 12.8, label="Colorado \n Highest Overall"))
+maxabvplot<- maxabvperstate %>% ggplot(aes(x = reorder(State,-maxabvperstate$'% ABV'), y = `% ABV`)) + 
+  ylab("Highest % ABV") + 
+  geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
+  geom_label(size = 3, label = maxabvperstate$`% ABV`, vjust = 1) + 
+  theme(plot.title = element_text(hjust = .5)) + 
+  labs(title = "Highest % ABV per State") + 
+  xlab('State') + 
+  geom_text(aes(8, 12.8, label="Colorado \n Highest Overall"))
+
 #plot max IBUs per state, label them, and call out the highest one
-maxibuplot<- maxibuperstate %>% ggplot(aes(x = State, y = IBU)) + ylab("Highest IBU") + geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + geom_label(size = 3, label = maxibuperstate$IBU, vjust = 1)+ theme(plot.title = element_text(hjust = .5))+ labs(title = "Highest IBU per State")+ geom_text(aes(40, 138, label="Oregon \n Highest Overall"))
+maxibuplot<- maxibuperstate %>% ggplot(aes(x = reorder(State,-IBU), y = IBU)) + 
+  ylab("Highest IBU") + 
+  geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
+  geom_label(size = 3, label = maxibuperstate$IBU, vjust = 1) + 
+  theme(plot.title = element_text(hjust = .5)) + 
+  labs(title = "Highest IBU per State") + 
+  xlab('State') + 
+  geom_text(aes(40, 138, label="Oregon \n Highest Overall"))
 
 #plots both charts together in a stacked configuration
-maxesfinalplot<- ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
+ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
+```
 
-
+#Comment on the summary statistics and distribution of the ABV variable.
+### As indicated in the histogram, density and the boxplot, we can observe that there is some amount of right skewness present in the ABV data
+### this could be due to the number of outliers present in the dataset
+```{r}
 #Q6 summary statistics and distribution of ABV
 abvsum<-summary(brewerydata$`% ABV`)
+
 #get data from the summary
 abvsum<-data.frame(table(abvsum))
 abvsum$stats[1]<- "Min"
@@ -146,31 +222,55 @@ abvsum<-subset(abvsum, select = -c(Freq))
 abvsum$abvsum<-round((as.numeric(as.character(abvsum$abvsum))), digits = 2)
 sumstatsstr<-unlist(strsplit(toString(abvsum[1:6,1]), ", "))
 
-abvplotdens<- brewerydata %>% ggplot(aes(x=`% ABV`)) + geom_density(aes(color = "red", size = 1)) + geom_histogram(aes(y=..density.., alpha = .2)) + labs(x = "% ABV", title = " Distribution of ABV Percentages", y = "Density") + theme(plot.title = element_text(hjust = .5), legend.position="none") + annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .45, label = sumstatsstr)+ annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .47, label = abvsum$stats )
+abvplotdens<- brewerydata %>% ggplot(aes(x=`% ABV`)) + 
+  geom_density(aes(color = "red", size = 1)) + 
+  geom_histogram(aes(y=..density.., alpha = .2)) + 
+  labs(x = "% ABV", title = " Distribution of ABV Percentages", y = "Density") + 
+  theme(plot.title = element_text(hjust = .5), legend.position="none") + 
+  annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .45, label = sumstatsstr)+ 
+  annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .47, label = abvsum$stats )
 
-abvplotbox<- brewerydata %>% ggplot(aes(x=`% ABV`)) + geom_boxplot() + labs(x = "% ABV", title = " Distribution of ABV Percentages") + theme(plot.title = element_text(hjust = .5), legend.position="none", axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank()) + annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .4, label = sumstatsstr)+ annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .43, label = abvsum$stats )+geom_point(aes(x=abvsum$abvsum[4], y=0), colour="red")
+abvplotbox<- brewerydata %>% ggplot(aes(x=`% ABV`)) + 
+  geom_boxplot() + 
+  labs(x = "% ABV", title = " Distribution of ABV Percentages") + 
+  theme(plot.title = element_text(hjust = .5), legend.position="none", axis.text.y = element_blank(), axis.title.y = element_blank(), axis.ticks.y = element_blank()) + 
+  annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .4, label = sumstatsstr)+ 
+  annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .43, label = abvsum$stats)+
+  geom_point(aes(x=abvsum$abvsum[4], y=0), colour="red")
 
 
-abvplots<- ggarrange(abvplotdens, abvplotbox, ncol = 1, nrow = 2)
+ggarrange(abvplotdens, abvplotbox, ncol = 1, nrow = 2)
+```
 
-
+#Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer.
+### The relationship seems to indicate that generally, breweries are making higher % ABV beers with higher IBU. However, their is no dependency between the two variables since they are obtained through different means. ABV is determined by yeast amount and time to ferment, while IBU is a result of hops added.
+```{r}
 #Q7 associate IBU and ABV on scatterplot
 
 
-abvibuplot<-brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + geom_point() + ylim(2.5, 13) + theme_dark() + stat_smooth(method = "lm", color = "red")
+abvibuplot<-brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + 
+  geom_point() + 
+  ylim(2.5, 13) + 
+  theme_dark() + 
+  stat_smooth(method = "lm", color = "red")
 
-abvibuplot + scale_color_gradient(low = "gold2", high = "white")
+abvibuplot + 
+  scale_color_gradient(low = "gold2", high = "white")
 
-#the relationship seems to indicate that generally, breweries are making higher % ABV beers with higher IBU. However, their is no dependency between the two variables since they are obtained through different means. ABV is determined by yeast amount and time to ferment, while IBU is a result of hops added.
+```
 
+# Need to fill this section up
+```{r}
 #Q8 IBU/ABV for IPA vs any other Ales.
 #subset the data to only Styles containing "Ale" and "IPA"
 Ale_Data<- brewerydata[grepl("Ale|IPA", brewerydata$Style),]
+
 #modify so we only have 2 levels for the KNN: "IPA" and "Other Ales"
 BinaryTest<- Ale_Data
 BinaryTest$Style<-ifelse(grepl("IPA", Ale_Data$Style), "IPA", "Other Ales")
 BinaryTest$Style<- as.factor(BinaryTest$Style)
 BinaryTest<-BinaryTest[, 4:6]
+
 #KNN setup
 library(class) #for the knn function
 library(caret) #for the confusion matrix function
@@ -181,6 +281,7 @@ normed<- data.frame(normed1, normed2)
 
 set.seed(6)
 beerloop<-data.frame()
+
 for (k in 1:200) {
   predicted.labels <- knn.cv(normed, BinaryTest$Style, k) #predict values
   #how many were right, based on our known values saved above.
@@ -199,15 +300,19 @@ which(beerloop$accuracy == max(beerloop$accuracy))
 
 cm<-knn.cv(normed, BinaryTest$Style, k = 21)
 confusionMatrix(table(BinaryTest$Style, cm))
-
-
-
-
 ```
 
-## Slide with Plot
 
-```{r pressure}
-plot(pressure)
+```{r}
+# Perform statistical analysis on data to gather inference 
+# We will check for significant differences in IBU among all states
+names(brewerydata)[4]= 'ABV'
+dunn_test_IBU_results = dunnTest(IBU~State,data=brewerydata,method='bh')
+dunn_test_IBU_results$res[dunn_test_IBU_results$res[4] < 0.05,]
+
+# We will check for significant differences in ABV among all states 
+dunn_test_ABV_results = dunnTest(ABV~State,data=brewerydata,method='bh')
+dunn_test_ABV_results$res[dunn_test_ABV_results$res[4] < 0.05,1]
 ```
+
 
