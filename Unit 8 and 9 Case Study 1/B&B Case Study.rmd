@@ -137,6 +137,7 @@ brewerydata<- brewerydata %>%
   group_by(State) %>% 
   mutate(MedianABV = median(`% ABV`, na.rm = TRUE))
 
+## Make adjustments to the scale of the text  
 
 ####plot results####
 #plot the median ABVs for each state, with labels
@@ -205,7 +206,7 @@ ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
 
 #Comment on the summary statistics and distribution of the ABV variable.
 ### As indicated in the histogram, density and the boxplot, we can observe that there is some amount of right skewness present in the ABV data
-### this could be due to the number of outliers present in the dataset
+### this could be due to the number of outliers present in the dataset. Also the summary stats is present in the output below.
 ```{r}
 #Q6 summary statistics and distribution of ABV
 abvsum<-summary(brewerydata$`% ABV`)
