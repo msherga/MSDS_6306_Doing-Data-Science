@@ -1,7 +1,7 @@
 ---
 title: "Beer and Breweries Case Study"
 author: "Matt Sherga & Rudranil Mitra"
-date: "6/15/2020"
+date: "6/22/2020"
 output:
   html_document: default
   word_document: default
@@ -41,7 +41,7 @@ brews<- read.csv(file.choose(),na.strings=c("","NA"))
 
 
 # How many breweries are present in each state 
-### We can see the Colorado, California, Michigan, Oregon and Texas have the highest number of breweries
+### We can see that Colorado, California, Michigan, Oregon and Texas have the highest number of breweries.
 ```{r}
 #Q1 breweries per state
 #Group the data by state
@@ -53,7 +53,7 @@ brewbystate %>% ggplot(aes(x = reorder(as.factor(State),-n), y = n)) +
   labs(y="# of Breweries", x = "State") + 
   geom_bar(stat = "identity", position = "dodge", fill = "goldenrod3") + 
   geom_label(size = 3, label = brewbystate$n, vjust = 1) + 
-  ggtitle('Breweries by State')
+  ggtitle('Breweries by State') + theme(plot.title = element_text(hjust = .5))
 
 ```
 
@@ -81,11 +81,11 @@ tail(brewerydata, 6)
 ```
 
 # Address the missing values in each column
-### ABV has 62 missing values 
-### IBU has 1005 missing values 
-### Style has 5 missing values 
-### Our initial approach was to scrape the web to find the missing values for ABV & IBU. However we encountered quite a few challenges in extracting the data from the interner
-### due to inconsistencies in HTML formatting across different websites. Our final approach was to calculate the median values of ABV and IBU and impute them into the missing values
+###ABV had 62 missing values 
+###IBU had 1005 missing values 
+###Style of beer had 5 missing values 
+###Our initial approach was to scrape the web to find the missing values for ABV & IBU. However we encountered quite a few challenges in extracting the data from the internet due to inconsistencies in HTML formatting across different websites. Our final approach was to calculate the median values of ABV and IBU per style and impute them into the respective missing values.
+
 ```{r}
 #Q3 Address the missing values
 #how many na rows in ABV and IBU? What about missing Styles?
@@ -198,7 +198,7 @@ maxibuplot<- maxibuperstate %>% ggplot(aes(x = reorder(State,-IBU), y = IBU)) +
   theme(plot.title = element_text(hjust = .5)) + 
   labs(title = "Highest IBU per State") + 
   xlab('State') + 
-  geom_text(aes(40, 138, label="Oregon \n Highest Overall"))
+  geom_text(aes(8, 138, label="Oregon \n Highest Overall"))
 
 #plots both charts together in a stacked configuration
 ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
@@ -211,6 +211,10 @@ ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
 #Q6 summary statistics and distribution of ABV
 abvsum<-summary(brewerydata$`% ABV`)
 
+#Checked summary with the NA beer removed. Only change is in the minimum. Decided not to remove the data point.
+noscotty<- brewerydata[!grepl("^606", brewerydata$Beer_ID),]
+summary(noscotty$`% ABV`) 
+
 #get data from the summary
 abvsum<-data.frame(table(abvsum))
 abvsum$stats[1]<- "Min"
@@ -222,6 +226,8 @@ abvsum$stats[6]<- "Max"
 abvsum<-subset(abvsum, select = -c(Freq))
 abvsum$abvsum<-round((as.numeric(as.character(abvsum$abvsum))), digits = 2)
 sumstatsstr<-unlist(strsplit(toString(abvsum[1:6,1]), ", "))
+
+
 
 abvplotdens<- brewerydata %>% ggplot(aes(x=`% ABV`)) + 
   geom_density(aes(color = "red", size = 1)) + 
@@ -253,9 +259,9 @@ abvibuplot<-brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) +
   geom_point() + 
   ylim(2.5, 13) + 
   theme_dark() + 
-  stat_smooth(method = "lm", color = "red")
-
-abvibuplot + 
+  stat_smooth(method = "lm", color = "red") + 
+  labs(title = "% ABV vs IBU") + 
+  theme(plot.title = element_text(hjust = .5)) +
   scale_color_gradient(low = "gold2", high = "white")
 
 ```
