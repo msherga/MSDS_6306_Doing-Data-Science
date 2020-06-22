@@ -231,7 +231,7 @@ sumstatsstr<-unlist(strsplit(toString(abvsum[1:6,1]), ", "))
 
 abvplotdens<- brewerydata %>% ggplot(aes(x=`% ABV`)) + 
   geom_density(aes(color = "red", size = 1)) + 
-  geom_histogram(aes(y=..density.., alpha = .2)) + 
+  geom_histogram(aes(y=..density.., alpha = .2),bins = 20) + 
   labs(x = "% ABV", title = " Distribution of ABV Percentages", y = "Density") + 
   theme(plot.title = element_text(hjust = .5), legend.position="none") + 
   annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .45, label = sumstatsstr)+ 
