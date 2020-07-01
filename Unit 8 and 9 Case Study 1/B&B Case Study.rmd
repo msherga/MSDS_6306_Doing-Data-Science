@@ -231,7 +231,7 @@ sumstatsstr<-unlist(strsplit(toString(abvsum[1:6,1]), ", "))
 
 abvplotdens<- brewerydata %>% ggplot(aes(x=`% ABV`)) + 
   geom_density(aes(color = "red", size = 1)) + 
-  geom_histogram(aes(y=..density.., alpha = .2),bins = 20) + 
+  geom_histogram(aes(y=..density.., alpha = .2)) + 
   labs(x = "% ABV", title = " Distribution of ABV Percentages", y = "Density") + 
   theme(plot.title = element_text(hjust = .5), legend.position="none") + 
   annotate("text", x = c(.1,5, 5.6, 5.97, 6.7, 12.8), y = .45, label = sumstatsstr)+ 
@@ -304,22 +304,46 @@ for (k in 1:200) {
 #what k has the highest accuracy? answer is 21 with .8964169
 which(beerloop$accuracy == max(beerloop$accuracy))
 
+Predictions<-knn.cv(normed, BinaryTest$Style, k = 21)
 
-cm<-knn.cv(normed, BinaryTest$Style, k = 21)
-confusionMatrix(table(BinaryTest$Style, cm))
+confusionMatrix(table(BinaryTest$Style, Predictions))
+
+# Code for plots
+aleabvibuplot<-BinaryTest %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + 
+  geom_point() + 
+  ylim(2.5, 13) + 
+  theme_dark() + 
+  stat_smooth(method = "lm", color = "red") + 
+  labs(title = "% ABV vs IBU for IPAs and All Other Ales") + 
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_color_gradient(low = "gold2", high = "white")
+
+
+predicted_style <- knn.cv(BinaryTest[,1:2],BinaryTest$Style,k=21)
+BinaryTestKnn <- data.frame(BinaryTest,predicted_style)
+BinaryTestKnn <- BinaryTestKnn %>% rename("% ABV" = X..ABV)
+BinaryTestKnn <- BinaryTestKnn %>% rename("Predicted Style" = predicted_style)
+
+predaleabvibuplot<- BinaryTestKnn %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + 
+  geom_point() + 
+  ylim(2.5, 13) + 
+  theme_dark() + 
+  stat_smooth(method = "lm", color = "red") + 
+  labs(title = "% ABV vs IBU for Predicted Styles") + 
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_color_gradient(low = "gold2", high = "white")
+
+
+ggarrange(aleabvibuplot, predaleabvibuplot, ncol = 1, nrow = 2)
+
+
 ```
 
 
 ```{r}
-# Perform statistical analysis on data to gather inference 
-# We will check for significant differences in IBU among all states
-names(brewerydata)[4]= 'ABV'
-dunn_test_IBU_results = dunnTest(IBU~State,data=brewerydata,method='bh')
-dunn_test_IBU_results$res[dunn_test_IBU_results$res[4] < 0.05,]
+# Correlation. There is overwhelming evidence that ABV and IBU are linearly correlated (p-value = <.0001). The Coefficient of Determination is .596, which means that IBU explains about 60% of the variation of ABV.
 
-# We will check for significant differences in ABV among all states 
-dunn_test_ABV_results = dunnTest(ABV~State,data=brewerydata,method='bh')
-dunn_test_ABV_results$res[dunn_test_ABV_results$res[4] < 0.05,1]
+cor.test(brewerydata$`% ABV`,brewerydata$IBU)
 ```
 
 
