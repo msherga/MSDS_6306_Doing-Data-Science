@@ -49,3 +49,12 @@ The data for this study will consist of two excel spreadsheets provided by Budwe
       7. Prediction Model using KNN 
 
       8. Correlation Between %ABV and IBU 
+      
+## Environment Information 
+
+R version 4.0.0 (2020-04-24)
+
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+Running under: Windows 10 x64 (build 17134)
+
