@@ -3,17 +3,18 @@ title: "Beer and Breweries Case Study"
 author: "Matt Sherga & Rudranil Mitra"
 date: "6/22/2020"
 output:
-  html_document: default
   word_document: default
+  html_document: default
+  pdf_document: default
 fig_width: 10
 fig_height: 10
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
-
+## Load the libraries 
 ```{r}
 # Load the libraries in R 
 library(XML) #xml_Parse
@@ -40,8 +41,11 @@ brews<- read.csv(file.choose(),na.strings=c("","NA"))
 ```
 
 
-# How many breweries are present in each state 
-### We can see that Colorado, California, Michigan, Oregon and Texas have the highest number of breweries.
+## How many breweries are present in each state 
+
+We can see that Colorado, California, Michigan, Oregon and Texas have the highest number of breweries.
+
+West Virginia & DC only have one brewery each
 ```{r}
 #Q1 breweries per state
 #Group the data by state
@@ -57,7 +61,7 @@ brewbystate %>% ggplot(aes(x = reorder(as.factor(State),-n), y = n)) +
 
 ```
 
-# Merge the data sets and print first/last 6 rows
+## Merge the data sets and print first/last 6 rows
 ```{r}
 #Q2 merge the data sets and print first/last 6 rows.
 #rename brewery id column to match "beers" respective column.
@@ -80,12 +84,15 @@ head(brewerydata, 6)
 tail(brewerydata, 6)
 ```
 
-# Address the missing values in each column
-###ABV had 62 missing values 
-###IBU had 1005 missing values 
-###Style of beer had 5 missing values 
-###Our initial approach was to scrape the web to find the missing values for ABV & IBU. However we encountered quite a few challenges in extracting the data from the internet due to inconsistencies in HTML formatting across different websites. Our final approach was to calculate the median values of ABV and IBU per style and impute them into the respective missing values.
+## Address the missing values in each column
 
+ABV had 62 missing values 
+
+IBU had 1005 missing values 
+
+Style of beer had 5 missing values 
+
+Our initial approach was to scrape the web to find the missing values for ABV & IBU. However we encountered quite a few challenges in extracting the data from the internet due to inconsistencies in HTML formatting across different websites. Our final approach was to calculate the median values of ABV and IBU per style and impute them into the respective missing values.
 ```{r}
 #Q3 Address the missing values
 #how many na rows in ABV and IBU? What about missing Styles?
@@ -123,7 +130,9 @@ brewerydata$IBU[1199] <- 59
 brewerydata$IBU[273] <- 40
 ```
 
-# Plots for Median ABV and IBU by State
+## Plots for Median ABV and IBU by State
+
+DC in top 5 median ABV, WV in top 5 ABV & IBU. Untapped markets for lower alcohol beers.
 ```{r}
 #Q4 Medians of ABV and IBU
 
@@ -161,9 +170,18 @@ medibuplot<- brewerydata %>% ggplot(aes(x = reorder(State,-MedianIBU), y = Media
 ggarrange(medabvplot, medibuplot, ncol = 1, nrow = 2)
 ```
 
-# Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
-### Colorado is the state with highest ABV
-### Oregon is the state with highest IBU
+## Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+
+Colorado is the state with highest ABV
+
+Oregon is the state with highest IBU
+
+Highest ABV = 12.8 %
+
+Highest IBU = 138
+
+Colorado Highest ABV, and higher-end IBU at 103.
+
 ```{r}
 #Q5
 
@@ -204,9 +222,11 @@ maxibuplot<- maxibuperstate %>% ggplot(aes(x = reorder(State,-IBU), y = IBU)) +
 ggarrange(maxabvplot, maxibuplot, ncol = 1, nrow = 2)
 ```
 
-#Comment on the summary statistics and distribution of the ABV variable.
-### As indicated in the histogram, density and the boxplot, we can observe that there is some amount of right skewness present in the ABV data
-### this could be due to the number of outliers present in the dataset. Also the summary stats is present in the output below.
+## Comment on the summary statistics and distribution of the ABV variable.
+
+As indicated in the histogram, density and the boxplot, we can observe that there is some amount of right skewness present in the ABV data
+
+this could be due to the number of outliers present in the dataset. Also the summary stats is present in the output below.
 ```{r}
 #Q6 summary statistics and distribution of ABV
 abvsum<-summary(brewerydata$`% ABV`)
@@ -249,13 +269,13 @@ abvplotbox<- brewerydata %>% ggplot(aes(x=`% ABV`)) +
 ggarrange(abvplotdens, abvplotbox, ncol = 1, nrow = 2)
 ```
 
-#Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer.
-### The relationship seems to indicate that generally, breweries are making higher % ABV beers with higher IBU. However, their is no dependency between the two variables since they are obtained through different means. ABV is determined by yeast amount and time to ferment, while IBU is a result of hops added.
+## Is there an apparent relationship between the bitterness of the beer and its alcoholic content? 
+
+The relationship seems to indicate that generally, breweries are making higher % ABV beers with higher IBU. However, their is no dependency between the two variables since they are obtained through different means. ABV is determined by yeast amount and time to ferment, while IBU is a result of hops added.
 ```{r}
 #Q7 associate IBU and ABV on scatterplot
 
-
-abvibuplot<-brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + 
+brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) + 
   geom_point() + 
   ylim(2.5, 13) + 
   theme_dark() + 
@@ -266,7 +286,9 @@ abvibuplot<-brewerydata %>% ggplot(aes(x= IBU, y = `% ABV`, color = `% ABV`)) +
 
 ```
 
-# Need to fill this section up
+## Prediction Model using KNN 
+
+High KNN accuracy for classifying whether a beer is Ale or IPA
 ```{r}
 #Q8 IBU/ABV for IPA vs any other Ales.
 #subset the data to only Styles containing "Ale" and "IPA"
@@ -339,7 +361,7 @@ ggarrange(aleabvibuplot, predaleabvibuplot, ncol = 1, nrow = 2)
 
 ```
 
-
+## Is there significant correlation Between % ABV & IBU
 ```{r}
 # Correlation. There is overwhelming evidence that ABV and IBU are linearly correlated (p-value = <.0001). The Coefficient of Determination is .596, which means that IBU explains about 60% of the variation of ABV.
 
